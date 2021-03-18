@@ -81,7 +81,7 @@ func (s *sizer) layout(val reflect.Value, ref *tagReference) error {
 	return s.addBits(ref.tags.bitfield.nbits)
 }
 
-func (s *sizer) array(t *transcoder, arr reflect.Value, ref *tagReference) error {
+func (s *sizer) array(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error {
 	sz, err := size(arr.Index(0))
 	if err != nil {
 		return err
@@ -95,8 +95,8 @@ func (s *sizer) array(t *transcoder, arr reflect.Value, ref *tagReference) error
 	return s.addBits(sz * len * 8)
 }
 
-func (s *sizer) slice(t *transcoder, arr reflect.Value, ref *tagReference) error {
-	return s.array(t, arr, ref)
+func (s *sizer) slice(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error {
+	return s.array(t, arr, tags, ref)
 }
 
 /*

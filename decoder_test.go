@@ -267,3 +267,15 @@ func TestBytesBuffer(t *testing.T) {
 		t.Errorf("Test Value Incorrect: Expected: %#02x Actual: %#02x", 0x02, s.B)
 	}
 }
+
+func TestTruncate(t *testing.T) {
+	type ts struct {
+		A [1024]byte `truncate:""`
+	}
+
+	var s = new(ts)
+
+	if err := DecodeByteBuffer(bytes.NewBuffer([]byte{0}), s); err != nil {
+		t.Errorf("Truncate test failed: %s", err)
+	}
+}

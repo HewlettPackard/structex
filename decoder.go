@@ -92,8 +92,7 @@ func (d *decoder) readValue(value reflect.Value, tags *tags) (uint64, error) {
 	}
 
 	nbits := uint64(0)
-	isBool := value.Kind() == reflect.Bool
-	if isBool {
+	if value.Kind() == reflect.Bool {
 		nbits = 1
 	} else {
 		nbits = uint64(value.Type().Bits())
@@ -140,7 +139,7 @@ func (d *decoder) layout(val reflect.Value, ref *tagReference) error {
 	return err
 }
 
-func (d *decoder) array(t *transcoder, arr reflect.Value, ref *tagReference) error {
+func (d *decoder) array(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error {
 	isStruct := arr.Type().Elem().Kind() == reflect.Struct
 	for j := 0; j < arr.Len(); j++ {
 
@@ -150,6 +149,10 @@ func (d *decoder) array(t *transcoder, arr reflect.Value, ref *tagReference) err
 			}
 		} else {
 			if _, err := d.readValue(arr.Index(j), nil); err != nil {
+				if err == io.EOF && tags != nil && tags.truncate {
+					return nil
+				}
+
 				return err
 			}
 		}
@@ -158,32 +161,39 @@ func (d *decoder) array(t *transcoder, arr reflect.Value, ref *tagReference) err
 	return nil
 }
 
-func (d *decoder) slice(t *transcoder, arr reflect.Value, ref *tagReference) error {
-	var length uint64 = 0
-	switch ref.tags.layout.format {
-	case sizeOf:
-		sz, err := typeSize(arr.Type().Elem())
-		if err != nil {
-			return err
+func (d *decoder) slice(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error {
+	length := uint64(arr.Len())
+
+	if ref != nil {
+		switch ref.tags.layout.format {
+		case sizeOf:
+			sz, err := typeSize(arr.Type().Elem())
+			if err != nil {
+				return err
+			}
+
+			if ref.tags.layout.value%sz != 0 {
+				return fmt.Errorf("Slice with size %d of slice is a non-multiple of structure size %d",
+					ref.tags.layout.value,
+					sz)
+			}
+
+			length = ref.tags.layout.value / sz
+		case countOf:
+			length = ref.tags.layout.value
+		default:
+			return fmt.Errorf("Slice size cannot be determined. Did you miss a field tag?")
 		}
 
-		if ref.tags.layout.value%sz != 0 {
-			return fmt.Errorf("Slice with size %d of slice is a non-multiple of structure size %d",
-				ref.tags.layout.value,
-				sz)
-		}
-
-		length = ref.tags.layout.value / sz
-	case countOf:
-		length = ref.tags.layout.value
-	default:
-		return fmt.Errorf("Slice size cannot be determined. Did you miss a field tag?")
+		arr.Set(reflect.MakeSlice(arr.Type(), int(length), int(length)))
 	}
-
-	arr.Set(reflect.MakeSlice(arr.Type(), int(length), int(length)))
 
 	for j := 0; j < arr.Len(); j++ {
 		if err := t.transcode(arr.Index(j)); err != nil {
+			if err == io.EOF && tags != nil && tags.truncate {
+				return nil
+			}
+
 			return err
 		}
 	}

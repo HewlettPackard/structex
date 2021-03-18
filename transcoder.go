@@ -40,8 +40,8 @@ type stack struct {
 type handler interface {
 	field(val reflect.Value, tags *tags) error
 	layout(val reflect.Value, ref *tagReference) error
-	array(t *transcoder, arr reflect.Value, ref *tagReference) error
-	slice(t *transcoder, arr reflect.Value, ref *tagReference) error
+	array(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error
+	slice(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error
 }
 
 type transcoder struct {
@@ -84,6 +84,8 @@ func (t *transcoder) transcode(val reflect.Value) error {
 		fieldVal := val.Field(i)
 		fieldTyp := typ.Field(i)
 
+		tags := parseFieldTags(fieldTyp)
+
 		switch fieldTyp.Type.Kind() {
 
 		case reflect.Struct:
@@ -93,18 +95,17 @@ func (t *transcoder) transcode(val reflect.Value) error {
 			}
 
 		case reflect.Array:
-			if err := t.handler.array(t, fieldVal, t.fieldMap[fieldTyp.Name]); err != nil {
+			if err := t.handler.array(t, fieldVal, &tags, t.fieldMap[fieldTyp.Name]); err != nil {
 				return err
 			}
 
 		case reflect.Slice:
-			if err := t.handler.slice(t, fieldVal, t.fieldMap[fieldTyp.Name]); err != nil {
+			if err := t.handler.slice(t, fieldVal, &tags, t.fieldMap[fieldTyp.Name]); err != nil {
 				return err
 			}
 
 		default:
-			tags := parseFieldTags(fieldTyp)
-
+			
 			if tags.layout.format != none {
 
 				found := t.fieldByName(tags.layout.name)

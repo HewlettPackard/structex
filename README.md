@@ -56,6 +56,7 @@ Bitfields define a structure field with an explicit size in bits. They are analo
                 bits and should be encoded as zeros.
 
 ### Self-Described Layout
+
 Many industry standards support dynamically sized return fields where the data layout is self described by other fields. To support such formats two annotations are provided.
 
 `sizeof:"[name][,relative]"`
@@ -80,6 +81,13 @@ Many industry standards support dynamically sized return fields where the data l
                 used to limit the number elements in the array or slice of
                 name `name`.
 
+### Truncation
+Structex expects sufficient data for decoding the desired structure. When data structures are used to define a maximum size of the response buffer, you can use the `truncate` tag on an arry or slice to permit structex to truncate the returned data with what is provided by the source
+buffer. If truncate is not specified and the provided buffer is of smaller size than the data structure, an `io.EOF` error is expected.
+
+`truncate:""`
+
+
 ### Alignment (Not Yet Implemented)
 
 Annotations can specified the byte-alignment requirement for structure fields. Analogous to the alignas specifier in C. Can only be applied to non-bitfield structure fields.
@@ -88,6 +96,22 @@ Annotations can specified the byte-alignment requirement for structure fields. A
 
     value       An integer value specifying the byte alignment of the field.
                 Invalid non-zero alignments panic.
+
+## Full Tags
+
+The tags documented above are abbreviated for ease of use; if desired, the full tag format is supported. This provides clarity that tags are part of the `structex` package, but it means typing more and using every sort of quote and backtic at your disposal.
+
+Examples
+
+```
+`structex:"bitfield='3'"`
+`structex:"bitfield='3,reserved'"`
+`structex:"countOf='D'"`
+`structex:"sizeOf='E'"`
+`structex:"sizeOf='F,relative'"`
+`structex:"align='8'"`
+`structex:"truncate"`
+```
 
 ## Performance
 `structex` places code and structure definition readability ahead of any pack/unpack performance. In brief, performance is abysmal.

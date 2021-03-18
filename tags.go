@@ -1,23 +1,23 @@
 /*
 Copyright 2021 Hewlett Packard Enterprise Development LP
 
-Permission is hereby granted, free of charge, to any person obtaining a 
-copy of this software and associated documentation files (the "Software"), 
-to deal in the Software without restriction, including without limitation 
-the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-and/or sell copies of the Software, and to permit persons to whom the 
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the
 Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in 
+The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE 
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 package structex
@@ -53,6 +53,7 @@ type tags struct {
 	bitfield  bitfield
 	layout    layout
 	alignment alignment
+	truncate  bool
 }
 
 // A TaggingError occurs when the pack/unpack routines have
@@ -71,47 +72,138 @@ func (e *TaggingError) Error() string {
 Method which parses the field tags and returns a series of informative
 structures defined by the the structure extension values.
 */
-func parseFieldTags(sf reflect.StructField) (tag tags) {
-	tag = tags{
+func parseFieldTags(sf reflect.StructField) tags {
+	t := tags{
 		bitfield:  bitfield{0, false},
 		layout:    layout{none, "", false, 0},
 		alignment: -1,
+		truncate:  false,
 	}
 
-	if t := sf.Tag.Get("bitfield"); len(t) != 0 {
-		if nbs := strings.Split(t, ",")[0]; len(nbs) != 0 {
+	// Always encode the size of the field, regardless of tags
+	switch sf.Type.Kind() {
+	case reflect.Array, reflect.Slice, reflect.Struct, reflect.Ptr:
+		break
+	case reflect.Bool:
+		t.bitfield.nbits = 1
+	default:
+		t.bitfield.nbits = uint64(sf.Type.Bits())
+	}
+
+	if s, ok := sf.Tag.Lookup("structex"); ok {
+		t.parseString(sf, s, parseOptions{sep: ',', quote: '\'', assign: '='})
+	} else {
+		t.parseString(sf, string(sf.Tag), parseOptions{sep: ' ', quote: '"', assign: ':'})
+	}
+
+	return t
+}
+
+type parseOptions struct {
+	sep    rune
+	quote  rune
+	assign rune
+}
+
+// Full tag format i.e. `structex:"bitfield='4,reserved',sizeof='Array'"`
+// Bare tag format i.e. `bitfield:"3,reserved" sizeOf:"Array"`
+func (t *tags) parseString(sf reflect.StructField, tagString string, opts parseOptions) {
+	if len(tagString) == 0 {
+		return
+	}
+
+	key := []rune{}
+	val := []rune{}
+
+	inKey := true
+	inVal := false
+
+	addKey := func(r rune) {
+		key = append(key, r)
+	}
+
+	addVal := func(r rune) {
+		val = append(val, r)
+	}
+
+	runes := []rune(tagString)
+	for idx, r := range runes {
+
+		switch r {
+		case opts.assign:
+			if inKey {
+				inKey = false
+			}
+		case opts.quote:
+			if inVal {
+				inVal = false
+				goto ADDTAG
+			} else {
+				inVal = true
+			}
+		case opts.sep, ',':
+			if !inVal {
+				inKey = true
+			} else {
+				addVal(r)
+			}
+		default:
+			if inKey {
+				addKey(r)
+				if idx == len(runes)-1 {
+					goto ADDTAG
+				}
+			} else if inVal {
+				addVal(r)
+			}
+		}
+
+		continue
+
+	ADDTAG:
+		t.add(sf, string(key), string(val))
+		key = []rune{}
+		val = []rune{}
+
+	}
+}
+
+func (t *tags) add(sf reflect.StructField, key string, val string) {
+	switch strings.ToLower(key) {
+	case "bitfield":
+		if nbs := strings.Split(val, ",")[0]; len(nbs) != 0 {
 			nbits, err := strconv.ParseInt(nbs, 0, int(sf.Type.Bits()))
 			if err != nil {
 				panic(&TaggingError{string(sf.Tag), sf.Type.Kind()})
 			}
-			tag.bitfield.nbits = uint64(nbits)
+			t.bitfield.nbits = uint64(nbits)
 		}
 
-		tag.bitfield.reserved = strings.Contains(t, "reserved")
-	} else {
-		tag.bitfield.nbits = uint64(sf.Type.Bits())
-	}
+		t.bitfield.reserved = strings.Contains(val, "reserved")
 
-	if t := sf.Tag.Get("sizeOf"); len(t) != 0 {
-		tag.layout.format = sizeOf
-		tag.layout.name = strings.Split(t, ",")[0]
-		tag.layout.relative = strings.Contains(t, "relative")
-	}
+	case "sizeof":
+		t.layout.format = sizeOf
+		t.layout.name = strings.Split(val, ",")[0]
+		t.layout.relative = strings.Contains(val, "relative")
 
-	if t := sf.Tag.Get("countOf"); len(t) != 0 {
-		tag.layout.format = countOf
-		tag.layout.name = t
-	}
+	case "countof":
+		t.layout.format = countOf
+		t.layout.name = val
 
-	if t := sf.Tag.Get("align"); len(t) != 0 {
-		align, err := strconv.ParseInt(t, 0, 64)
+	case "truncate":
+		t.truncate = true
+
+	case "align":
+		align, err := strconv.ParseInt(val, 0, 64)
 		if err != nil {
 			panic(&TaggingError{string(sf.Tag), sf.Type.Kind()})
 		}
-		tag.alignment = alignment(align)
+		t.alignment = alignment(align)
 	}
+}
 
-	return
+func (t *tags) parseBitfield(sf reflect.StructField, s string, opts parseOptions) {
+
 }
 
 func (t *tags) print() {

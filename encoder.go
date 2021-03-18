@@ -121,7 +121,7 @@ func (e *encoder) layout(val reflect.Value, ref *tagReference) error {
 	return e.write(value, ref.tags.bitfield.nbits)
 }
 
-func (e *encoder) array(t *transcoder, arr reflect.Value, ref *tagReference) error {
+func (e *encoder) array(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error {
 	l := arr.Len()
 	if ref != nil && !ref.value.IsZero() {
 		l = int(ref.value.Uint())
@@ -136,12 +136,12 @@ func (e *encoder) array(t *transcoder, arr reflect.Value, ref *tagReference) err
 	return nil
 }
 
-func (e *encoder) slice(t *transcoder, arr reflect.Value, ref *tagReference) error {
-	return e.array(t, arr, ref)
+func (e *encoder) slice(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error {
+	return e.array(t, arr, tags, ref)
 }
 
 /*
-Encode serializes the data structure defined by s into the available
+Encode serializes the data structure defined by 's' into the available
 io.ByteWriter stream. Annotation rules are as defined in the Decode
 function.
 */
@@ -157,4 +157,21 @@ func Encode(writer io.ByteWriter, s interface{}) error {
 	t := newTranscoder(&e)
 
 	return t.transcode(reflect.ValueOf(s))
+}
+
+/*
+EncodeByteBuffer serializes the provided data structure 's' into a new byte
+buffer. Bytes are packed according to the annotation rules defined for 's'.
+*/
+func EncodeByteBuffer(s interface{}) ([]byte, error) {
+	buf := NewBuffer(s)
+	if buf == nil {
+		return nil, fmt.Errorf("Could not allocate byte buffer")
+	}
+
+	if err := Encode(buf, s); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
