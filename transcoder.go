@@ -38,6 +38,7 @@ type stack struct {
 }
 
 type handler interface {
+	align(a alignment) error
 	field(val reflect.Value, tags *tags) error
 	layout(val reflect.Value, ref *tagReference) error
 	array(t *transcoder, arr reflect.Value, tags *tags, ref *tagReference) error
@@ -86,6 +87,12 @@ func (t *transcoder) transcode(val reflect.Value) error {
 
 		tags := parseFieldTags(fieldTyp)
 
+		if tags.alignment != 0 {
+			if err := t.handler.align(tags.alignment); err != nil {
+				return err
+			}
+		}
+
 		switch fieldTyp.Type.Kind() {
 
 		case reflect.Struct:
@@ -111,11 +118,11 @@ func (t *transcoder) transcode(val reflect.Value) error {
 				found := t.fieldByName(tags.layout.name)
 
 				if !found.IsValid() || found.Type() == reflect.PtrTo(reflect.TypeOf(reflect.Invalid)) {
-					return fmt.Errorf("Cannot locate field name '%s'", tags.layout.name)
+					return fmt.Errorf("cannot locate referenced field '%s'", tags.layout.name)
 				}
 
 				if found.Kind() != reflect.Slice && found.Kind() != reflect.Array {
-					return fmt.Errorf("Referenced layout must be of type slice or array; Is of type %s", found.Kind().String())
+					return fmt.Errorf("referenced layout must be of type slice or array; is of type %s", found.Kind().String())
 				}
 
 				ref := &tagReference{

@@ -88,7 +88,7 @@ buffer. If truncate is not specified and the provided buffer is of smaller size 
 `truncate:""`
 
 
-### Alignment (Not Yet Implemented)
+### Alignment
 
 Annotations can specified the byte-alignment requirement for structure fields. Analogous to the alignas specifier in C. Can only be applied to non-bitfield structure fields.
 
@@ -114,7 +114,7 @@ Examples
 ```
 
 ## Performance
-`structex` places code and structure definition readability ahead of any pack/unpack performance. In brief, performance is abysmal.
+`structex` places code readability ahead of any pack/unpack performance. Reflection is used to analyze the structure definitions, which itself carries heavy overhead. Parsing the tags also takes time.
  
 For those looking for more performant code, consider [code generation](https://github.com/golang/text/blob/master/internal/gen/bitfield/bitfield.go) or a [cache based](https://github.com/lunixbochs/struc) solutions 
 

@@ -47,6 +47,22 @@ func (s *sizer) addBits(nbits uint64) error {
 	return nil
 }
 
+func (s *sizer) align(val alignment) error {
+	if s.nbits != 0 {
+		if err := s.addBits(8 - s.nbits); err != nil {
+			return err
+		}
+	}
+
+	for s.nbytes % uint64(val) != 0 {
+		if err := s.addBits(8); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *sizer) field(val reflect.Value, tags *tags) error {
 	if tags == nil {
 		return s.addBits(uint64(val.Type().Bits()))

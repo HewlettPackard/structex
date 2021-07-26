@@ -90,17 +90,20 @@ func TestBasicDecoder(t *testing.T) {
 		}
 	})
 }
+
 func TestBitfieldDecoder(t *testing.T) {
 
 	type ts struct {
 		A int `bitfield:"3"`
 		B int `bitfield:"4"`
 		C int `bitfield:"1"`
+		D int `bitfield:"12"`
+		E int `bitfield:"4"`
 	}
 
 	var s = new(ts)
 
-	var tr = newReader([]byte{0xC7})
+	var tr = newReader([]byte{0xC7, 0xFF, 0x1F})
 
 	unpackAndTest(t, s, tr, func(t *testing.T, i interface{}) {
 		var s = i.(*ts)
@@ -113,6 +116,12 @@ func TestBitfieldDecoder(t *testing.T) {
 		}
 		if s.C != 0x01 {
 			t.Errorf("Test Value Incorrect: Expected: %#02x Actual: %#02x", 0x08, s.C)
+		}
+		if s.D != 0x0FFF {
+			t.Errorf("Test Value Incorrect: Expected %#03x Actual: %#03x", 0xFFF, s.D)
+		}
+		if s.E != 0x1 {
+			t.Errorf("Test Value Incorrect: Expected: %#x Actual: %#x", 0x1, s.E)
 		}
 	})
 }
@@ -278,4 +287,23 @@ func TestTruncate(t *testing.T) {
 	if err := DecodeByteBuffer(bytes.NewBuffer([]byte{0}), s); err != nil {
 		t.Errorf("Truncate test failed: %s", err)
 	}
+}
+
+func TestAlignmentDecoder(t *testing.T) {
+	type ts struct {
+		Pad uint8
+		Aligned uint32 `align:"4"`
+	}
+
+	var s = new(ts)
+
+	tr := newReader([]byte{0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF})
+
+	unpackAndTest(t, s, tr, func(t *testing.T, i interface{}) {
+		s := i.(*ts)
+
+		if s.Aligned != 0xFFFFFFFF {
+			t.Errorf("Unexpected aligned parameter: Expected: %#08x Actual: %#08x", 0xFFFFFFFF, s.Aligned)
+		}
+	})
 }

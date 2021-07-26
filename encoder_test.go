@@ -95,13 +95,21 @@ func TestBitfieldEncoder(t *testing.T) {
 		A int `bitfield:"3"`
 		B int `bitfield:"4"`
 		C int `bitfield:"1"`
+		D int `bitfield:"12"`
+		E int `bitfield:"4"`
 	}{
-		0x7, 0x8, 0x1,
+		0x7, 0x8, 0x1, 0x0FFF, 0x1,
 	}
 
 	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
 		if tw.getByte(0) != 0xC7 {
-			t.Errorf("Invalid bitfield: Expected: %02X Actual: %02X", 0xC7, tw.getByte(0))
+			t.Errorf("Invalid bitfield: Expected: %#02x Actual: %#02x", 0xC7, tw.getByte(0))
+		}
+		if tw.getByte(1) != 0xFF {
+			t.Errorf("Invalid bitfield: Expected: %#02x Actual: %#02x", 0xFF, tw.getByte(1))
+		}
+		if tw.getByte(2) != 0x1F {
+			t.Errorf("Invalid bitfield: Expected: %#02x Actual: %#02x", 0x1F, tw.getByte(2))
 		}
 	})
 }
@@ -250,6 +258,25 @@ func TestArrayTruncate(t *testing.T) {
 			if tw.getByte(4+i) != byte(i) {
 				t.Errorf("Invalid array byte: Expected: %#02x Actual: %#02x", i, tw.getByte(4+i))
 			}
+		}
+	})
+}
+
+func TestAlignment(t *testing.T) {
+	s := struct {
+		Pad uint8
+		Aligned uint32 `align:"4"`
+	} {
+		0x00, 0xFF,
+	}
+
+	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
+		if tw.getSize() != 8 {
+			t.Errorf("Invalid size of encoded buffer: Expected: %d Actual: %d", 8, tw.getSize())
+		}
+
+		if tw.getByte(4) != 0xFF {
+			t.Errorf("Invalid aligned field: Expected %#02x Actual: %#02x", 0xFF, tw.getByte(4))
 		}
 	})
 }

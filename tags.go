@@ -47,7 +47,7 @@ type layout struct {
 	value    uint64
 }
 
-type alignment int64
+type alignment uint64
 
 type tags struct {
 	bitfield  bitfield
@@ -76,7 +76,7 @@ func parseFieldTags(sf reflect.StructField) tags {
 	t := tags{
 		bitfield:  bitfield{0, false},
 		layout:    layout{none, "", false, 0},
-		alignment: -1,
+		alignment: 0,
 		truncate:  false,
 	}
 
