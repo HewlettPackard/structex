@@ -24,6 +24,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 package structex
 
 import (
+	"encoding/binary"
 	"fmt"
 	"testing"
 )
@@ -50,6 +51,14 @@ func (tw *testWriter) WriteByte(b byte) error {
 
 func (tw *testWriter) getByte(i int) byte {
 	return tw.bytes[i]
+}
+
+func (tw *testWriter) getBytes(start, end int) []byte {
+	b := make([]byte, end-start+1)
+	for idx := range b {
+		b[idx] = tw.getByte(start + idx)
+	}
+	return b
 }
 
 func (tw *testWriter) getSize() int {
@@ -85,6 +94,63 @@ func TestSimpleEncoder(t *testing.T) {
 		}
 		if tw.getByte(3) != 0xFF {
 			t.Errorf("Simple pack failure byte 3: Expected: %x Actual: %x", 0xFF, tw.getByte(3))
+		}
+	})
+}
+
+func TestEndianEncoder(t *testing.T) {
+	s := struct {
+		Big16    uint16 `structex:"big"`
+		Little16 uint16
+		Big32    uint32 `structex:"big"`
+		Little32 uint32
+		Big64    uint64 `structex:"big"`
+		Little64 uint64
+	}{
+		0x0123, 0x0123,
+		0x01234567, 0x01234567,
+		0x0123456789ABCDEF, 0x0123456789ABCDEF,
+	}
+
+	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
+		// uint16
+		{
+
+			big16 := binary.BigEndian.Uint16(tw.getBytes(0, 1))
+			little16 := binary.LittleEndian.Uint16(tw.getBytes(2, 3))
+
+			if big16 != s.Big16 {
+				t.Errorf("Invalid big-endian value for 16-bit field: Expected: %#04x Actual: %#04x", s.Big16, big16)
+			}
+			if little16 != s.Little16 {
+				t.Errorf("Invalid little-endian value for 16-bit field: Expected: %#04x Actual: %#04x", s.Little16, little16)
+			}
+		}
+
+		// uint32
+		{
+			big32 := binary.BigEndian.Uint32(tw.getBytes(4, 7))
+			little32 := binary.LittleEndian.Uint32(tw.getBytes(8, 11))
+
+			if big32 != s.Big32 {
+				t.Errorf("Invalid big-endian value for 32-bit field: Expected: %#08x Actual: %#08x", s.Big32, big32)
+			}
+			if little32 != s.Little32 {
+				t.Errorf("Invalid little-endian value for 32-bit field: Expected: %#08x Actual: %#08x", s.Little32, little32)
+			}
+		}
+
+		// uint64
+		{
+			big64 := binary.BigEndian.Uint64(tw.getBytes(12, 19))
+			little64 := binary.LittleEndian.Uint64(tw.getBytes(20, 27))
+
+			if big64 != s.Big64 {
+				t.Errorf("Invalaid big-endian value for 64-bit field: Expected: %#08x Actual: %#08x", s.Big64, big64)
+			}
+			if little64 != s.Little64 {
+				t.Errorf("Invalaid big-endian value for 64-bit field: Expected: %#08x Actual: %#08x", s.Little64, little64)
+			}
 		}
 	})
 }
@@ -264,9 +330,9 @@ func TestArrayTruncate(t *testing.T) {
 
 func TestAlignment(t *testing.T) {
 	s := struct {
-		Pad uint8
+		Pad     uint8
 		Aligned uint32 `align:"4"`
-	} {
+	}{
 		0x00, 0xFF,
 	}
 

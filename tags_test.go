@@ -45,7 +45,11 @@ func TestBareTags(t *testing.T) {
 		E int `sizeOf:"F,relative"`
 		G int `align:"8"`
 		H int `truncate:""`
+		I int `big:""`
+		J int `little:""`
 	}{
+		0,
+		0,
 		0,
 		0,
 		0,
@@ -62,6 +66,8 @@ func TestBareTags(t *testing.T) {
 	testTags(t, s, 4, func(t tags) bool { return t.layout.name == "F" && t.layout.format == sizeOf && t.layout.relative })
 	testTags(t, s, 5, func(t tags) bool { return t.alignment == 8 })
 	testTags(t, s, 6, func(t tags) bool { return t.truncate == true })
+	testTags(t, s, 7, func(t tags) bool { return t.endian == big })
+	testTags(t, s, 8, func(t tags) bool { return t.endian == little })
 }
 
 func TestFullTags(t *testing.T) {
@@ -73,7 +79,11 @@ func TestFullTags(t *testing.T) {
 		E int `structex:"sizeOf='F,relative'"`
 		G int `structex:"align='8'"`
 		H int `structex:"truncate"`
+		I int `structex:"big"`
+		J int `structex:"little"`
 	}{
+		0,
+		0,
 		0,
 		0,
 		0,
@@ -90,4 +100,6 @@ func TestFullTags(t *testing.T) {
 	testTags(t, s, 4, func(t tags) bool { return t.layout.name == "F" && t.layout.format == sizeOf && t.layout.relative })
 	testTags(t, s, 5, func(t tags) bool { return t.alignment == 8 })
 	testTags(t, s, 6, func(t tags) bool { return t.truncate == true })
+	testTags(t, s, 7, func(t tags) bool { return t.endian == big })
+	testTags(t, s, 8, func(t tags) bool { return t.endian == little })
 }

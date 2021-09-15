@@ -25,6 +25,7 @@ package structex
 import (
 	"bytes"
 	"fmt"
+	"math/bits"
 	"testing"
 )
 
@@ -91,6 +92,49 @@ func TestBasicDecoder(t *testing.T) {
 	})
 }
 
+func TestEndianDecoder(t *testing.T) {
+	type ts struct {
+		Big16    uint16 `structex:"big"`
+		Little16 uint16
+		Big32    uint32 `structex:"big"`
+		Little32 uint32
+		Big64    uint64 `structex:"big"`
+		Little64 uint64
+	}
+
+	var s = new(ts)
+	var tr = newReader([]byte{
+		0x01, 0x23,
+		0x01, 0x23,
+		0x01, 0x23, 0x45, 0x67,
+		0x01, 0x23, 0x45, 0x67,
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+		0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF})
+
+	unpackAndTest(t, s, tr, func(t *testing.T, i interface{}) {
+		var s = i.(*ts)
+
+		if s.Big16 != 0x0123 {
+			t.Errorf("Invalid big-endian 16-bit value: Expected: %#04x Actual: %#04x", 0x0123, s.Big16)
+		}
+		if s.Little16 != bits.ReverseBytes16(0x0123) {
+			t.Errorf("Invalid little-endian 16-bit value: Expected: %#04x Actual: %#04x", bits.Reverse16(0x0123), s.Little16)
+		}
+		if s.Big32 != 0x01234567 {
+			t.Errorf("Invalid big-endian 32-bit value: Expected: %#08x Actual: %#08x", 0x01234567, s.Big32)
+		}
+		if s.Little32 != bits.ReverseBytes32(0x01234567) {
+			t.Errorf("Invalid little-endian 32-bit value: Expected: %#08x Actual: %#08x", bits.Reverse32(0x01234567), s.Little32)
+		}
+		if s.Big64 != 0x0123456789ABCDEF {
+			t.Errorf("Invalid big-endian 64-bit value: Expected: %#016x Actual: %#016x", 0x0123456789ABCDEF, s.Big64)
+		}
+		if s.Little64 != bits.ReverseBytes64(0x0123456789ABCDEF) {
+			t.Errorf("Invalid little-endian 64-bit value: Expected: %#016x Actual: %#016x", bits.Reverse64(0x0123456789ABCDEF), s.Little64)
+		}
+	})
+
+}
 func TestBitfieldDecoder(t *testing.T) {
 
 	type ts struct {
@@ -291,7 +335,7 @@ func TestTruncate(t *testing.T) {
 
 func TestAlignmentDecoder(t *testing.T) {
 	type ts struct {
-		Pad uint8
+		Pad     uint8
 		Aligned uint32 `align:"4"`
 	}
 
