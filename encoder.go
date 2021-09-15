@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/bits"
 	"reflect"
 )
 
@@ -38,8 +39,8 @@ type encoder struct {
 
 func (e *encoder) write(value uint64, nbits uint64) error {
 
-	if nbits > 1 && value > uint64(math.Pow(2, float64(nbits)))-1 {
-		return fmt.Errorf("Value %d will overflow bitfield of %d bits", value, nbits)
+	if nbits > 1 && value > math.MaxUint64 {
+		return fmt.Errorf("Value %d (%#x) will overflow bitfield of %d bits", value, value, nbits)
 	}
 
 	// Write any bits that might be part of previous bitfield definitions
@@ -105,6 +106,17 @@ func (e *encoder) field(val reflect.Value, tags *tags) error {
 	v := getValue(val)
 	if tags == nil {
 		return e.write(v, uint64(val.Type().Bits()))
+	}
+
+	if tags.endian == big {
+		switch val.Kind() {
+		case reflect.Uint16, reflect.Int16:
+			v = uint64(bits.ReverseBytes16(uint16(v)))
+		case reflect.Uint32, reflect.Int32, reflect.Uint, reflect.Int:
+			v = uint64(bits.ReverseBytes32(uint32(v)))
+		case reflect.Uint64, reflect.Int64:
+			v = bits.ReverseBytes64(v)
+		}
 	}
 
 	return e.write(v, tags.bitfield.nbits)

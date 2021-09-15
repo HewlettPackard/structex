@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/bits"
 	"reflect"
 )
 
@@ -65,7 +66,7 @@ func (d *decoder) read(nbits uint64) (uint64, error) {
 		}
 	}
 
-	for nbits != 0  {
+	for nbits != 0 {
 		b, err := d.reader.ReadByte()
 		if err != nil {
 			return 0, err
@@ -97,7 +98,8 @@ func (d *decoder) readValue(value reflect.Value, tags *tags) (uint64, error) {
 	}
 
 	nbits := uint64(0)
-	if value.Kind() == reflect.Bool {
+	kind := value.Kind()
+	if kind == reflect.Bool {
 		nbits = 1
 	} else {
 		nbits = uint64(value.Type().Bits())
@@ -116,6 +118,17 @@ func (d *decoder) readValue(value reflect.Value, tags *tags) (uint64, error) {
 	v, err := d.read(nbits)
 	if err != nil {
 		return 0, err
+	}
+
+	if tags != nil && tags.endian == big {
+		switch kind {
+		case reflect.Uint16, reflect.Int16:
+			v = uint64(bits.ReverseBytes16(uint16(v)))
+		case reflect.Uint32, reflect.Int32, reflect.Uint, reflect.Int:
+			v = uint64(bits.ReverseBytes32(uint32(v)))
+		case reflect.Uint64, reflect.Int64:
+			v = bits.ReverseBytes64(v)
+		}
 	}
 
 	switch value.Kind() {
