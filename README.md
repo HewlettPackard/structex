@@ -44,6 +44,13 @@ func main() {
 ```
 ## Annotation Format
 
+### Endianness
+
+Little-endian (default) or big-endian tags support for integer and unsigned integer types
+`little:""`
+
+`big:""`
+
 ### Bitfield
 
 Bitfields define a structure field with an explicit size in bits. They are analogous to bit fields in the C specification.
@@ -104,6 +111,8 @@ The tags documented above are abbreviated for ease of use; if desired, the full 
 Examples
 
 ```
+`structex:"little"`
+`structex:"big"`
 `structex:"bitfield='3'"`
 `structex:"bitfield='3,reserved'"`
 `structex:"countOf='D'"`

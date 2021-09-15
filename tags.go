@@ -29,6 +29,13 @@ import (
 	"strings"
 )
 
+type endian int
+
+const (
+	little endian = 0
+	big    endian = 1
+)
+
 type bitfield struct {
 	nbits    uint64
 	reserved bool
@@ -50,6 +57,7 @@ type layout struct {
 type alignment uint64
 
 type tags struct {
+	endian    endian
 	bitfield  bitfield
 	layout    layout
 	alignment alignment
@@ -74,6 +82,7 @@ structures defined by the the structure extension values.
 */
 func parseFieldTags(sf reflect.StructField) tags {
 	t := tags{
+		endian:    little,
 		bitfield:  bitfield{0, false},
 		layout:    layout{none, "", false, 0},
 		alignment: 0,
@@ -170,6 +179,12 @@ func (t *tags) parseString(sf reflect.StructField, tagString string, opts parseO
 
 func (t *tags) add(sf reflect.StructField, key string, val string) {
 	switch strings.ToLower(key) {
+	case "little":
+		t.endian = little
+
+	case "big":
+		t.endian = big
+
 	case "bitfield":
 		if nbs := strings.Split(val, ",")[0]; len(nbs) != 0 {
 			nbits, err := strconv.ParseInt(nbs, 0, int(sf.Type.Bits()))
