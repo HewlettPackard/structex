@@ -269,6 +269,66 @@ func TestArrayEncoder(t *testing.T) {
 	})
 }
 
+func TestArrayLittleEndian16Encoder(t *testing.T) {
+	s := struct {
+		Count uint8 `countOf:"Ts"`
+		Size  uint8 `sizeOf:"Ts"`
+		Ts    [2]uint16 `little:""`
+	}{
+		Count: 0x00,
+		Size:  0x00,
+		Ts: [2]uint16{0x0102, 0x0304},
+	}
+
+	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
+		if tw.getByte(0) != 2 {
+			t.Errorf("Invalid countOf: Expected: %d Actual: %d", 2, tw.getByte(0))
+		}
+		if tw.getByte(1) != 4 {
+			t.Errorf("Invalid sizeOf: Expected: %d Actual: %d", 4, tw.getByte(1))
+		}
+
+		expected := []uint8{0x02, 0x01, 0x04, 0x03}
+		actual := []uint8{tw.getByte(2), tw.getByte(3), tw.getByte(4), tw.getByte(5)}
+
+		for i := 0; i < 4; i++ {
+			if expected[i] != actual[i] {
+				t.Errorf("Invalid array pack: Index: %d Expected: %#02x Actual: %#02x", i, expected[i], actual[i])
+			}
+		}
+	})
+}
+
+func TestArrayBigEndian16Encoder(t *testing.T) {
+	s := struct {
+		Count uint8 `countOf:"Ts"`
+		Size  uint8 `sizeOf:"Ts"`
+		Ts    [2]uint16 `big:""`
+	}{
+		Count: 0x00,
+		Size:  0x00,
+		Ts: [2]uint16{0x0102, 0x0304},
+	}
+
+	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
+		if tw.getByte(0) != 2 {
+			t.Errorf("Invalid countOf: Expected: %d Actual: %d", 2, tw.getByte(0))
+		}
+		if tw.getByte(1) != 4 {
+			t.Errorf("Invalid sizeOf: Expected: %d Actual: %d", 4, tw.getByte(1))
+		}
+
+		expected := []uint8{0x01, 0x02, 0x03, 0x04}
+		actual := []uint8{tw.getByte(2), tw.getByte(3), tw.getByte(4), tw.getByte(5)}
+
+		for i := 0; i < 4; i++ {
+			if expected[i] != actual[i] {
+				t.Errorf("Invalid array pack: Index: %d Expected: %#02x Actual: %#02x", i, expected[i], actual[i])
+			}
+		}
+	})
+}
+
 func TestSliceEncoder(t *testing.T) {
 
 	ts := [6]uint8{0xA, 0xB, 0xC, 0xD, 0xE, 0xF}

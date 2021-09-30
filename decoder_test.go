@@ -259,6 +259,64 @@ func TestArrayDecoder(t *testing.T) {
 	})
 }
 
+func TestArrayLittleEndian16Decoder(t *testing.T) {
+	type ts struct {
+		Count uint8 `countOf:"Ts"`
+		Size  uint8 `sizeOf:"Ts"`
+		Ts    [2]uint16 `little:""`
+	}
+
+	var s = new(ts)
+
+	var tr = newReader([]byte{2, 4, 0x34, 0x12, 0x78, 0x56})
+
+	unpackAndTest(t, s, tr, func(t *testing.T, i interface{}) {
+		var s = i.(*ts)
+
+		if s.Count != 2 {
+			t.Errorf("Count Value Incorrect: Expected: %#02x Actual: %#02x", 2, s.Count)
+		}
+		if s.Size != 4 {
+			t.Errorf("Size Value Incorrect: Expected: %#02x Actual: %#02x", 4, s.Size)
+		}
+		if s.Ts[0] != 0x1234 {
+			t.Errorf("Array Value Incorrect: Expected %#02x Actual: %#02x", 0x1234, s.Ts[0])
+		}
+		if s.Ts[1] != 0x5678 {
+			t.Errorf("Array Value Incorrect: Expected %#02x Actual: %#02x", 0x5678, s.Ts[1])
+		}
+	})
+}
+
+func TestArrayBigEndian16Decoder(t *testing.T) {
+	type ts struct {
+		Count uint8 `countOf:"Ts"`
+		Size  uint8 `sizeOf:"Ts"`
+		Ts    [2]uint16 `big:""`
+	}
+
+	var s = new(ts)
+
+	var tr = newReader([]byte{2, 4, 0x12, 0x34, 0x56, 0x78})
+
+	unpackAndTest(t, s, tr, func(t *testing.T, i interface{}) {
+		var s = i.(*ts)
+
+		if s.Count != 2 {
+			t.Errorf("Count Value Incorrect: Expected: %#02x Actual: %#02x", 2, s.Count)
+		}
+		if s.Size != 4 {
+			t.Errorf("Size Value Incorrect: Expected: %#02x Actual: %#02x", 4, s.Size)
+		}
+		if s.Ts[0] != 0x1234 {
+			t.Errorf("Array Value Incorrect: Expected %#02x Actual: %#02x", 0x1234, s.Ts[0])
+		}
+		if s.Ts[1] != 0x5678 {
+			t.Errorf("Array Value Incorrect: Expected %#02x Actual: %#02x", 0x5678, s.Ts[1])
+		}
+	})
+}
+
 func TestHeaderStyleDecoder(t *testing.T) {
 
 	type hdr struct {
