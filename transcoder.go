@@ -62,7 +62,7 @@ func newTranscoder(h handler) *transcoder {
 	return &t
 }
 
-func (t *transcoder) transcode(val reflect.Value) error {
+func (t *transcoder) transcode(val reflect.Value, rtags *tags) error {
 
 	// Allow the user the pass in a struct or a struct pointer.
 	for val.Kind() == reflect.Ptr {
@@ -73,7 +73,7 @@ func (t *transcoder) transcode(val reflect.Value) error {
 	// we all recursive calls of transcode so must handle
 	// raw types.
 	if val.Kind() != reflect.Struct {
-		return t.handler.field(val, nil)
+		return t.handler.field(val, rtags)
 	}
 
 	t.backtrace.push(val)
@@ -97,7 +97,7 @@ func (t *transcoder) transcode(val reflect.Value) error {
 
 		case reflect.Struct:
 			// Nested structure, do recursive transcoding
-			if err := t.transcode(fieldVal); err != nil {
+			if err := t.transcode(fieldVal, nil); err != nil {
 				return err
 			}
 

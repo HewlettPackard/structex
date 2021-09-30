@@ -134,7 +134,7 @@ func size(value reflect.Value) (uint64, error) {
 
 	t := newTranscoder(&s)
 
-	if err := t.transcode(value); err != nil {
+	if err := t.transcode(value, nil); err != nil {
 		return 0, err
 	}
 

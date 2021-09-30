@@ -112,7 +112,9 @@ func (d *decoder) readValue(value reflect.Value, tags *tags) (uint64, error) {
 				tags.bitfield.nbits,
 				nbits)
 		}
-		nbits = tags.bitfield.nbits
+		if tags.bitfield.nbits > 0 {
+			nbits = tags.bitfield.nbits
+		}
 	}
 
 	v, err := d.read(nbits)
@@ -178,11 +180,11 @@ func (d *decoder) array(t *transcoder, arr reflect.Value, tags *tags, ref *tagRe
 	for j := 0; j < arr.Len(); j++ {
 
 		if isStruct { // Recurse down into the struct
-			if err := t.transcode(arr.Index(j)); err != nil {
+			if err := t.transcode(arr.Index(j), tags); err != nil {
 				return err
 			}
 		} else {
-			if _, err := d.readValue(arr.Index(j), nil); err != nil {
+			if _, err := d.readValue(arr.Index(j), tags); err != nil {
 				if err == io.EOF && tags != nil && tags.truncate {
 					return nil
 				}
@@ -223,7 +225,7 @@ func (d *decoder) slice(t *transcoder, arr reflect.Value, tags *tags, ref *tagRe
 	}
 
 	for j := 0; j < arr.Len(); j++ {
-		if err := t.transcode(arr.Index(j)); err != nil {
+		if err := t.transcode(arr.Index(j), tags); err != nil {
 			if err == io.EOF && tags != nil && tags.truncate {
 				return nil
 			}
@@ -301,7 +303,7 @@ func Decode(reader io.ByteReader, s interface{}) error {
 
 	t := newTranscoder(&d)
 
-	return t.transcode(reflect.ValueOf(s))
+	return t.transcode(reflect.ValueOf(s), nil)
 }
 
 // DecodeByteBuffer takes a raw byte buffer and unpacks the buffer into

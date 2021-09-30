@@ -104,8 +104,10 @@ func (e *encoder) align(val alignment) error {
 
 func (e *encoder) field(val reflect.Value, tags *tags) error {
 	v := getValue(val)
-	if tags == nil {
-		return e.write(v, uint64(val.Type().Bits()))
+	nbits := tags.bitfield.nbits 
+	
+	if nbits == 0 {
+		nbits = uint64(val.Type().Bits())
 	}
 
 	if tags.endian == big {
@@ -119,7 +121,7 @@ func (e *encoder) field(val reflect.Value, tags *tags) error {
 		}
 	}
 
-	return e.write(v, tags.bitfield.nbits)
+	return e.write(v, nbits)
 }
 
 func (e *encoder) layout(val reflect.Value, ref *tagReference) error {
@@ -155,7 +157,7 @@ func (e *encoder) array(t *transcoder, arr reflect.Value, tags *tags, ref *tagRe
 	}
 
 	for i := 0; i < l; i++ {
-		if err := t.transcode(arr.Index(i)); err != nil {
+		if err := t.transcode(arr.Index(i), tags); err != nil {
 			return err
 		}
 	}
@@ -183,7 +185,7 @@ func Encode(writer io.ByteWriter, s interface{}) error {
 
 	t := newTranscoder(&e)
 
-	return t.transcode(reflect.ValueOf(s))
+	return t.transcode(reflect.ValueOf(s), nil)
 }
 
 /*
