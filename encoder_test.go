@@ -84,16 +84,16 @@ func TestSimpleEncoder(t *testing.T) {
 
 	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
 		if tw.getByte(0) != 0x01 {
-			t.Errorf("Simple pack failure byte 0: Expected: %x Actual: %x", 0x01, tw.getByte(0))
+			t.Errorf("Simple pack failure byte 0: Expected: %#02x Actual: %#02x", 0x01, tw.getByte(0))
 		}
 		if tw.getByte(1) != 0x00 {
-			t.Errorf("Simple pack failure byte 1: Expected: %x Actual: %x", 0x00, tw.getByte(1))
+			t.Errorf("Simple pack failure byte 1: Expected: %#02x Actual: %#02x", 0x00, tw.getByte(1))
 		}
 		if tw.getByte(2) != 0xEE {
-			t.Errorf("Simple pack failure byte 2: Expected: %x Actual: %x", 0xEE, tw.getByte(2))
+			t.Errorf("Simple pack failure byte 2: Expected: %#02x Actual: %#02x", 0xEE, tw.getByte(2))
 		}
 		if tw.getByte(3) != 0xFF {
-			t.Errorf("Simple pack failure byte 3: Expected: %x Actual: %x", 0xFF, tw.getByte(3))
+			t.Errorf("Simple pack failure byte 3: Expected: %#02x Actual: %#02x", 0xFF, tw.getByte(3))
 		}
 	})
 }
@@ -106,10 +106,14 @@ func TestEndianEncoder(t *testing.T) {
 		Little32 uint32
 		Big64    uint64 `structex:"big"`
 		Little64 uint64
+
+		Big32Forced    uint32 `structex:"big"`
+		Little32Forced uint32 `structex:"little"`
 	}{
 		0x0123, 0x0123,
 		0x01234567, 0x01234567,
 		0x0123456789ABCDEF, 0x0123456789ABCDEF,
+		0x89ABCDEF, 0x89ABCDEF,
 	}
 
 	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
@@ -146,10 +150,24 @@ func TestEndianEncoder(t *testing.T) {
 			little64 := binary.LittleEndian.Uint64(tw.getBytes(20, 27))
 
 			if big64 != s.Big64 {
-				t.Errorf("Invalaid big-endian value for 64-bit field: Expected: %#08x Actual: %#08x", s.Big64, big64)
+				t.Errorf("Invalid big-endian value for 64-bit field: Expected: %#08x Actual: %#08x", s.Big64, big64)
 			}
 			if little64 != s.Little64 {
-				t.Errorf("Invalaid big-endian value for 64-bit field: Expected: %#08x Actual: %#08x", s.Little64, little64)
+				t.Errorf("Invalid little-endian value for 64-bit field: Expected: %#08x Actual: %#08x", s.Little64, little64)
+			}
+		}
+
+		// uint32 - forced endian formats
+		{
+			big32 := binary.BigEndian.Uint32(tw.getBytes(28, 31))
+			little32 := binary.LittleEndian.Uint32(tw.getBytes(32, 35))
+
+			if big32 != s.Big32Forced {
+				t.Errorf("Invalid FORCED big-endian value for 32-bit field: Expected: %#08x Actual: %#08x", s.Big32Forced, big32)
+			}
+
+			if little32 != s.Little32Forced {
+				t.Errorf("Invalid FORCED little-endian value for 32-bit field: Expected: %#08x Actual: %#08x", s.Little32Forced, little32)
 			}
 		}
 	})
