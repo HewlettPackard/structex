@@ -24,7 +24,16 @@ package structex
 
 import (
 	"fmt"
+	"os"
 	"reflect"
+	"strings"
+)
+
+const (
+	// EnvVarDefaultEndianness is the name of the environment variable used to
+	// define the default endian format for all structure elements unless otherwise
+	// sepcified. Default to little-endian
+	EnvVarDefaultEndianness = "X_STRUCTEX_DEFAULT_ENDIANNESS"
 )
 
 type tagReference struct {
@@ -46,17 +55,31 @@ type handler interface {
 }
 
 type transcoder struct {
-	handler   handler
-	fieldMap  map[string]*tagReference
-	backtrace stack
+	handler           handler
+	fieldMap          map[string]*tagReference
+	backtrace         stack
+	defaultEndianness endian
 }
 
 func newTranscoder(h handler) *transcoder {
 
 	t := transcoder{
-		handler:   h,
-		fieldMap:  make(map[string]*tagReference),
-		backtrace: stack{len: 0},
+		handler:           h,
+		fieldMap:          make(map[string]*tagReference),
+		backtrace:         stack{len: 0},
+		defaultEndianness: little,
+	}
+
+	endianness, present := os.LookupEnv(EnvVarDefaultEndianness)
+	if present {
+		switch strings.ToLower(endianness) {
+		case "little":
+			t.defaultEndianness = little
+		case "big":
+			t.defaultEndianness = big
+		default:
+			panic(fmt.Sprintf("Detected EnvVar %s: Endian '%s' not recognized. Should be one of 'big' or 'little'", EnvVarDefaultEndianness, endianness))
+		}
 	}
 
 	return &t
@@ -112,7 +135,7 @@ func (t *transcoder) transcode(val reflect.Value, rtags *tags) error {
 			}
 
 		default:
-			
+
 			if tags.layout.format != none {
 
 				found := t.fieldByName(tags.layout.name)
