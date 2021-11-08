@@ -36,6 +36,7 @@ type decoder struct {
 	currentByte uint8
 	byteOffset  uint64
 	bitOffset   uint64
+	transcoder  *transcoder
 }
 
 func (d *decoder) read(nbits uint64) (uint64, error) {
@@ -122,7 +123,7 @@ func (d *decoder) readValue(value reflect.Value, tags *tags) (uint64, error) {
 		return 0, err
 	}
 
-	if tags != nil && tags.endian == big {
+	if (tags != nil && tags.endian == big) || (d.transcoder.defaultEndianness == big && (tags != nil && tags.endian != little)) {
 		switch kind {
 		case reflect.Uint16, reflect.Int16:
 			v = uint64(bits.ReverseBytes16(uint16(v)))
@@ -302,6 +303,7 @@ func Decode(reader io.ByteReader, s interface{}) error {
 	}
 
 	t := newTranscoder(&d)
+	d.transcoder = t
 
 	return t.transcode(reflect.ValueOf(s), nil)
 }

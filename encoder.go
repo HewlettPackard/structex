@@ -35,6 +35,7 @@ type encoder struct {
 	currentByte uint8
 	byteOffset  uint64
 	bitOffset   uint64
+	transcoder  *transcoder
 }
 
 func (e *encoder) write(value uint64, nbits uint64) error {
@@ -104,13 +105,13 @@ func (e *encoder) align(val alignment) error {
 
 func (e *encoder) field(val reflect.Value, tags *tags) error {
 	v := getValue(val)
-	nbits := tags.bitfield.nbits 
-	
+
+	nbits := tags.bitfield.nbits
 	if nbits == 0 {
 		nbits = uint64(val.Type().Bits())
 	}
 
-	if tags.endian == big {
+	if (tags != nil && tags.endian == big) || (e.transcoder.defaultEndianness == big && (tags != nil && tags.endian != little)) {
 		switch val.Kind() {
 		case reflect.Uint16, reflect.Int16:
 			v = uint64(bits.ReverseBytes16(uint16(v)))
@@ -184,6 +185,7 @@ func Encode(writer io.ByteWriter, s interface{}) error {
 	}
 
 	t := newTranscoder(&e)
+	e.transcoder = t
 
 	return t.transcode(reflect.ValueOf(s), nil)
 }

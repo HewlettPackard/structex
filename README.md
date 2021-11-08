@@ -42,6 +42,17 @@ func main() {
     // etc
 }
 ```
+
+## Constants
+```go
+const (
+	// EnvVarDefaultEndianness is the name of the environment variable used to
+	// define the default endian format for all structure elements unless otherwise
+	// sepcified. Defaults to little-endian
+	EnvVarDefaultEndianness = "X_STRUCTEX_DEFAULT_ENDIANNESS"
+)
+```
+
 ## Annotation Format
 
 ### Endianness

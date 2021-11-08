@@ -54,7 +54,7 @@ func (s *sizer) align(val alignment) error {
 		}
 	}
 
-	for s.nbytes % uint64(val) != 0 {
+	for s.nbytes%uint64(val) != 0 {
 		if err := s.addBits(8); err != nil {
 			return err
 		}
