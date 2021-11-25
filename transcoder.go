@@ -202,6 +202,8 @@ func getValue(val reflect.Value) uint64 {
 		value = val.Uint()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		value = uint64(val.Int())
+	case reflect.Bool:
+		value = map[bool]uint64{true: 1}[val.Bool()]
 	default:
 		panic(fmt.Errorf("Field type %s unsupported", val.Type().Kind().String()))
 	}
