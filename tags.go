@@ -32,8 +32,9 @@ import (
 type endian int
 
 const (
-	little endian = 0
-	big    endian = 1
+	little    endian = 0
+	big       endian = 1
+	undefined endian = 2
 )
 
 type bitfield struct {
@@ -82,7 +83,7 @@ structures defined by the the structure extension values.
 */
 func parseFieldTags(sf reflect.StructField) tags {
 	t := tags{
-		endian:    little,
+		endian:    undefined,
 		bitfield:  bitfield{0, false},
 		layout:    layout{none, "", false, 0},
 		alignment: 0,
