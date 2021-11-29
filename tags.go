@@ -188,9 +188,16 @@ func (t *tags) add(sf reflect.StructField, key string, val string) {
 
 	case "bitfield":
 		if nbs := strings.Split(val, ",")[0]; len(nbs) != 0 {
-			nbits, err := strconv.ParseInt(nbs, 0, int(sf.Type.Bits()))
-			if err != nil {
-				panic(&TaggingError{string(sf.Tag), sf.Type.Kind()})
+			var nbits int64
+			switch sf.Type.Kind() {
+			case reflect.Bool:
+				nbits = 1
+			default:
+				var err error
+				nbits, err = strconv.ParseInt(nbs, 0, int(sf.Type.Bits()))
+				if err != nil {
+					panic(&TaggingError{string(sf.Tag), sf.Type.Kind()})
+				}
 			}
 			t.bitfield.nbits = uint64(nbits)
 		}

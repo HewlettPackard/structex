@@ -101,7 +101,7 @@ func TestEndianDecoder(t *testing.T) {
 		Big64    uint64 `structex:"big"`
 		Little64 uint64
 
-		Big32Forced uint32 `structex:"big"`
+		Big32Forced    uint32 `structex:"big"`
 		Little32Forced uint32 `structex:"little"`
 	}
 
@@ -114,7 +114,7 @@ func TestEndianDecoder(t *testing.T) {
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
 		0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
 		0x89, 0xAB, 0xCD, 0xEF,
-		0x89, 0xAB, 0xCD, 0xEF,})
+		0x89, 0xAB, 0xCD, 0xEF})
 
 	unpackAndTest(t, s, tr, func(t *testing.T, i interface{}) {
 		var s = i.(*ts)
@@ -272,8 +272,8 @@ func TestArrayDecoder(t *testing.T) {
 
 func TestArrayLittleEndian16Decoder(t *testing.T) {
 	type ts struct {
-		Count uint8 `countOf:"Ts"`
-		Size  uint8 `sizeOf:"Ts"`
+		Count uint8     `countOf:"Ts"`
+		Size  uint8     `sizeOf:"Ts"`
 		Ts    [2]uint16 `little:""`
 	}
 
@@ -301,8 +301,8 @@ func TestArrayLittleEndian16Decoder(t *testing.T) {
 
 func TestArrayBigEndian16Decoder(t *testing.T) {
 	type ts struct {
-		Count uint8 `countOf:"Ts"`
-		Size  uint8 `sizeOf:"Ts"`
+		Count uint8     `countOf:"Ts"`
+		Size  uint8     `sizeOf:"Ts"`
 		Ts    [2]uint16 `big:""`
 	}
 
@@ -417,6 +417,69 @@ func TestAlignmentDecoder(t *testing.T) {
 
 		if s.Aligned != 0xFFFFFFFF {
 			t.Errorf("Unexpected aligned parameter: Expected: %#08x Actual: %#08x", 0xFFFFFFFF, s.Aligned)
+		}
+	})
+}
+
+func TestBoolDecoder(t *testing.T) {
+	type ts struct {
+		IsD  bool  `bitfield:"1"`
+		ValC uint8 `bitfield:"2"`
+		IsC  bool  `bitfield:"1"`
+		IsB  bool  `bitfield:"1"`
+		ValB uint8 `bitfield:"2"`
+		IsA  bool  `bitfield:"1"`
+		ValD uint8
+
+		ValF uint16 `bitfield:"2"`
+		IsH  bool   `bitfield:"1"`
+		IsG  bool   `bitfield:"1"`
+		ValE uint16 `bitfield:"10"`
+		IsF  bool   `bitfield:"1"`
+		IsE  bool   `bitfield:"1"`
+	}
+	var s = new(ts)
+
+	var tr = newReader([]byte{0b10101101, 0x12, 0b11110101, 0b10001111})
+
+	unpackAndTest(t, s, tr, func(t *testing.T, i interface{}) {
+		var s = i.(*ts)
+
+		if !s.IsA {
+			t.Errorf("IsA Value Incorrect: Expected: %v Actual: %v", true, s.IsA)
+		}
+		if s.ValB != 0b01 {
+			t.Errorf("ValB Value Incorrect: Expected: %#02x Actual: %#02x", 0b01, s.ValB)
+		}
+		if s.IsB {
+			t.Errorf("IsB Value Incorrect: Expected: %v Actual: %v", false, s.IsB)
+		}
+		if !s.IsC {
+			t.Errorf("IsC Value Incorrect: Expected: %v Actual: %v", true, s.IsC)
+		}
+		if s.ValC != 0b10 {
+			t.Errorf("ValC Value Incorrect: Expected: %#02x Actual: %#02x", 0b10, s.ValC)
+		}
+		if !s.IsD {
+			t.Errorf("IsB Value Incorrect: Expected: %v Actual: %v", true, s.IsD)
+		}
+		if s.ValD != 0x12 {
+			t.Errorf("ValC Value Incorrect: Expected: %#02x Actual: %#02x", 0x12, s.ValD)
+		}
+		if !s.IsE {
+			t.Errorf("IsE Value Incorrect: Expected: %v Actual: %v", true, s.IsE)
+		}
+		if s.IsF {
+			t.Errorf("IsF Value Incorrect: Expected: %v Actual: %v", false, s.IsF)
+		}
+		if s.ValE != 0b0011111111 {
+			t.Errorf("ValE Value Incorrect: Expected: %#02x Actual: %#02x", 0x0011111111, s.ValE)
+		}
+		if s.IsG {
+			t.Errorf("IsG Value Incorrect: Expected: %v Actual: %v", false, s.IsG)
+		}
+		if !s.IsH {
+			t.Errorf("IsH Value Incorrect: Expected: %v Actual: %v", true, s.IsH)
 		}
 	})
 }

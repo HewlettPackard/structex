@@ -424,3 +424,26 @@ func TestAlignment(t *testing.T) {
 		}
 	})
 }
+
+func TestBoolEncoder(t *testing.T) {
+	s := struct {
+		IsD  bool  `bitfield:"1"`
+		ValC uint8 `bitfield:"2"`
+		IsC  bool  `bitfield:"1"`
+		IsB  bool  `bitfield:"1"`
+		ValB uint8 `bitfield:"2"`
+		IsA  bool  `bitfield:"1"`
+		ValD uint8
+	}{
+		true, 0b10, true, false, 0b01, true, 0x12,
+	}
+
+	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
+		if tw.getByte(0) != 0b10101101 {
+			t.Errorf("Invalid bitfield: Expected: %d Actual: %d", 0b10101101, tw.getByte(0))
+		}
+		if tw.getByte(1) != 0x12 {
+			t.Errorf("Invalid bitfield: Expected: %d Actual: %d", 0x12, tw.getByte(1))
+		}
+	})
+}
