@@ -21,7 +21,7 @@ import (
 type SCSI_Standard_Inquiry struct {
     PeripheralDeviceType uint8 `bitfield:"5"`          // Byte 0
     PeripheralQualifier  uint8 `bitfield:"3"`
-    reserved0            uint8 `bitfield:"6,reserved"` // Byte 1
+    Reserved0            uint8 `bitfield:"6,reserved"` // Byte 1
     LU_Cong              uint8 `bitfield:"1"`
     RMB                  uint8 `bitfield:"1"`
     Version              uint8                         // Byte 2
@@ -48,7 +48,7 @@ func main() {
 const (
 	// EnvVarDefaultEndianness is the name of the environment variable used to
 	// define the default endian format for all structure elements unless otherwise
-	// sepcified. Defaults to little-endian
+	// sepcified. Options: 'big' or 'little'.
 	EnvVarDefaultEndianness = "X_STRUCTEX_DEFAULT_ENDIANNESS"
 )
 ```
@@ -57,7 +57,8 @@ const (
 
 ### Endianness
 
-Little-endian (default) or big-endian tags support for integer and unsigned integer types
+Little-endian (default) or big-endian tags are supported for integer and unsigned integer types.
+
 `little:""`
 
 `big:""`
