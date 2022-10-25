@@ -26,6 +26,7 @@ package structex
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"testing"
 )
 
@@ -289,13 +290,13 @@ func TestArrayEncoder(t *testing.T) {
 
 func TestArrayLittleEndian16Encoder(t *testing.T) {
 	s := struct {
-		Count uint8 `countOf:"Ts"`
-		Size  uint8 `sizeOf:"Ts"`
+		Count uint8     `countOf:"Ts"`
+		Size  uint8     `sizeOf:"Ts"`
 		Ts    [2]uint16 `little:""`
 	}{
 		Count: 0x00,
 		Size:  0x00,
-		Ts: [2]uint16{0x0102, 0x0304},
+		Ts:    [2]uint16{0x0102, 0x0304},
 	}
 
 	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
@@ -319,13 +320,13 @@ func TestArrayLittleEndian16Encoder(t *testing.T) {
 
 func TestArrayBigEndian16Encoder(t *testing.T) {
 	s := struct {
-		Count uint8 `countOf:"Ts"`
-		Size  uint8 `sizeOf:"Ts"`
+		Count uint8     `countOf:"Ts"`
+		Size  uint8     `sizeOf:"Ts"`
 		Ts    [2]uint16 `big:""`
 	}{
 		Count: 0x00,
 		Size:  0x00,
-		Ts: [2]uint16{0x0102, 0x0304},
+		Ts:    [2]uint16{0x0102, 0x0304},
 	}
 
 	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
@@ -444,6 +445,29 @@ func TestBoolEncoder(t *testing.T) {
 		}
 		if tw.getByte(1) != 0x12 {
 			t.Errorf("Invalid bitfield: Expected: %d Actual: %d", 0x12, tw.getByte(1))
+		}
+	})
+}
+
+func TestSignedEncoder(t *testing.T) {
+	s := struct {
+		A     int8
+		B     int8 `bitfield:"8"`
+		C     int8 `bitfield:"3"`
+		Dummy int8 `bitfield:"5"`
+	}{
+		-1, -1, -1, 0,
+	}
+
+	packAndTest(t, s, func(t *testing.T, tw *testWriter) {
+		if tw.getByte(0) != math.MaxUint8 {
+			t.Errorf("Invalid byte A: Expected: %d Actual: %d", math.MaxUint8, tw.getByte(0))
+		}
+		if tw.getByte(1) != math.MaxUint8 {
+			t.Errorf("Invalid byte B: Expected: %d Actual: %d", math.MaxUint8, tw.getByte(1))
+		}
+		if tw.getByte(2) != 0b00000111 {
+			t.Errorf("Invalid bitfield C: Expected: %#08b Actual: %#08b", 0b00000111, tw.getByte(2))
 		}
 	})
 }

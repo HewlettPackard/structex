@@ -25,6 +25,7 @@ package structex
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"math/bits"
 	"testing"
 )
@@ -149,11 +150,11 @@ func TestEndianDecoder(t *testing.T) {
 func TestBitfieldDecoder(t *testing.T) {
 
 	type ts struct {
-		A int `bitfield:"3"`
-		B int `bitfield:"4"`
-		C int `bitfield:"1"`
-		D int `bitfield:"12"`
-		E int `bitfield:"4"`
+		A uint `bitfield:"3"`
+		B uint `bitfield:"4"`
+		C uint `bitfield:"1"`
+		D uint `bitfield:"12"`
+		E uint `bitfield:"4"`
 	}
 
 	var s = new(ts)
@@ -184,9 +185,9 @@ func TestBitfieldDecoder(t *testing.T) {
 func TestNestedDecoder(t *testing.T) {
 
 	type ns struct {
-		M int `bitfield:"3"`
-		N int `bitfield:"4"`
-		O int `bitfield:"1"`
+		M uint `bitfield:"3"`
+		N uint `bitfield:"4"`
+		O uint `bitfield:"1"`
 	}
 
 	type ts struct {
@@ -480,6 +481,39 @@ func TestBoolDecoder(t *testing.T) {
 		}
 		if !s.IsH {
 			t.Errorf("IsH Value Incorrect: Expected: %v Actual: %v", true, s.IsH)
+		}
+	})
+}
+
+func TestSignedDecoder(t *testing.T) {
+	type ts struct {
+		A     int8
+		B     int8  `bitfield:"8"`
+		C     int8  `bitfield:"3"`
+		Dummy uint8 `bitfield:"5"`
+	}
+
+	var s = new(ts)
+
+	var tr = newReader([]byte{-math.MinInt8, -math.MinInt8, 0b11111100})
+
+	unpackAndTest(t, s, tr, func(t *testing.T, i interface{}) {
+		var s = i.(*ts)
+
+		if s.A != math.MinInt8 {
+			t.Errorf("A Value Incorrect: Expected: %d Actual: %d", math.MinInt8, s.A)
+		}
+
+		if s.B != math.MinInt8 {
+			t.Errorf("B Value Incorrect: Expected: %d Actual: %d", math.MinInt8, s.B)
+		}
+
+		if s.C != -4 {
+			t.Errorf("C Value Incorrect: Expected: %d Actual: %d", -4, s.C)
+		}
+
+		if s.Dummy != 0b11111 {
+			t.Errorf("Dummy Value incorrect: Expected: %#b Actual: %#b", 0b111111, s.Dummy)
 		}
 	})
 }
