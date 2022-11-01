@@ -63,7 +63,7 @@ func (e *encoder) write(value uint64, nbits uint64) error {
 	}
 
 	for nbits != 0 {
-		e.currentByte = uint8(value)
+		e.currentByte = uint8(value & ((1 << nbits)-1))
 		if nbits < 8 {
 			e.bitOffset += nbits
 			return nil

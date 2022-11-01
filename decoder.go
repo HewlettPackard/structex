@@ -140,7 +140,11 @@ func (d *decoder) readValue(value reflect.Value, tags *tags) (uint64, error) {
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		value.SetUint(v)
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-		value.SetInt(int64(v))
+		if v>>(nbits-1) == 1 {
+			value.SetInt(int64(v) - int64((1<<nbits)-1) - 1)
+		} else {
+			value.SetInt(int64(v))
+		}
 	default:
 		return 0, fmt.Errorf("Unsupported read type %s", value.Kind().String())
 	}
@@ -245,6 +249,7 @@ Deserialization occurs according to the annotations in the structure which
 take several options:
 
 Bitfields:
+
 	Bitfields define a structure field with an explicit size in bits. They are
 	analogous to bit fields in the C specification. Un
 
@@ -256,6 +261,7 @@ Bitfields:
 	           bits and should be encoded as zeros.
 
 Dynamic Layouts:
+
 	Many industry standards support dynamically sized return fields where the
 	data layout is self described by other fields. To support such formats
 	two annotations are provided.
@@ -283,6 +289,7 @@ Dynamic Layouts:
 				name Field.
 
 Alignment:
+
 	Annotations can specified the byte-alignment requirement for structure
 	fields. Analogous to the alignas specifier in C. Can only be applied
 	to non-bitfield structure fields.
@@ -291,7 +298,6 @@ Alignment:
 
 	value		An integer value specifying the byte alignment of the field.
 				Invalid non-zero alignments panic.
-
 */
 func Decode(reader io.ByteReader, s interface{}) error {
 
